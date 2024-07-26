@@ -1,4 +1,5 @@
-use std::io;
+use std::io::{self, Write};
+use std::env;
 
 #[derive(Debug, PartialEq)]
 enum TokenType {
@@ -190,23 +191,45 @@ fn evaluate(node: &ASTNode) -> f64 {
                 TokenType::Multiply => left_val * right_val,
                 TokenType::Divide => left_val / right_val,
                 TokenType::Power => left_val.powf(right_val),
+                TokenType::Modulo => left_val % right_val,
                 _ => panic!("Unexpected operator: {:?}", op),
             }
         }
     }
 }
 
-fn main() {
-    let mut input : String = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
-
-    let mut tokenizer = Tokenizer::new(input.to_string());
-    let tokens = tokenizer.tokenize();
-
-    let mut parser = Parser::new(tokens);
-    let ast = parser.parse();
-
-    let result = evaluate(&ast);
-    println!("Result: {}", result);
+fn parse_and_evaluate(input: &str) -> f64 {
+    let tokens = Tokenizer::new(input.to_string()).tokenize();
+    let ast = Parser::new(tokens).parse();
+    evaluate(&ast)
 }
 
+fn interactive_mode() -> i8 {
+    let mut input : String = String::new();
+    let mut running : bool = true;
+    while running {
+        print!("> ");
+        io::stdout().flush().expect("Failed to flush stdout");
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        if input.trim() == "exit" {
+            running = false;
+        }
+        else {
+            println!("Result: {}", parse_and_evaluate(input.trim()));
+        }
+    }
+    0
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1{
+        for i in 1..args.len() {
+            println!("{}", parse_and_evaluate(&args[i]));
+        }
+    }
+    else {
+        interactive_mode();
+    }
+}
